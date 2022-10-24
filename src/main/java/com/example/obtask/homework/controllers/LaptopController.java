@@ -2,8 +2,9 @@ package com.example.obtask.homework.controllers;
 
 import com.example.obtask.homework.models.Laptop;
 import com.example.obtask.homework.repository.LaptopRepository;
-import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import springfox.documentation.annotations.ApiIgnore;
 
 import java.util.List;
 import java.util.Optional;
@@ -18,33 +19,76 @@ public class LaptopController {
     this.repo = repo;
   }
   
+  @ApiIgnore
   @GetMapping(API_V_1_LAPTOPS)
-  List<Laptop> getLaptops() {
-    return repo.findAll();
+  ResponseEntity<List<Laptop>> getAllLaptops() {
+    List<Laptop> res = repo.findAll();
+    
+    if (res.isEmpty()) {
+      return ResponseEntity.noContent().build();
+    }
+    
+    return ResponseEntity.ok(res);
   }
   
   @GetMapping(API_V_1_LAPTOPS + "/{id}")
-  Optional<Laptop> getByid(@PathVariable Long id) {
-    return repo.findById(id);
+  ResponseEntity<Optional<Laptop>> getByid(@PathVariable Long id) {
+    Optional<Laptop> res = repo.findById(id);
+    
+    if (res.isEmpty()) {
+      return ResponseEntity.notFound().build();
+    }
+    
+    return ResponseEntity.ok(res);
   }
   
   @PostMapping(API_V_1_LAPTOPS)
-  Laptop createLaptop(@RequestBody Laptop laptop) {
-    return repo.save(laptop);
+  ResponseEntity<Laptop> createLaptop(@RequestBody Laptop laptop) {
+    if (laptop.getRam() == null || laptop.getMarca() == null || laptop.getProcesador() == null) {
+      return ResponseEntity.badRequest().build();
+    }
+    
+    repo.save(laptop);
+    
+    return ResponseEntity.ok(laptop);
+  }
+  
+  @PutMapping(API_V_1_LAPTOPS)
+  ResponseEntity<Laptop> updateLaptop(@RequestBody Laptop laptop) {
+    if (laptop.getId() == null) {
+      return ResponseEntity.badRequest().build();
+    }
+  
+    if (!repo.existsById(laptop.getId())) {
+      return ResponseEntity.notFound().build();
+    }
+  
+    return ResponseEntity.ok(repo.save(laptop));
   }
   
   @DeleteMapping(API_V_1_LAPTOPS + "/{id}")
-  String deleteLaptop(@PathVariable Long id) {
-    try {
-      repo.deleteById(id);
-      return "La laptop: " + id + "Se borro correctamente";
-    } catch (EmptyResultDataAccessException e) {
-      return "no se encontro la laptop, error: " + e.getMessage();
+  ResponseEntity<Optional<Laptop>> deleteLaptop(@PathVariable Long id) {
+    Optional<Laptop> laptop = repo.findById(id);
+    
+    if (laptop.isEmpty()) {
+      return ResponseEntity.badRequest().build();
     }
+    
+    return ResponseEntity.ok(laptop);
+    
   }
   
+  @ApiIgnore
   @DeleteMapping(API_V_1_LAPTOPS)
-  void deleteAll() {
+  ResponseEntity<String> deleteAll() {
+    List<Laptop> res = repo.findAll();
+  
+    if (res.isEmpty()) {
+      return ResponseEntity.noContent().build();
+    }
+    
     repo.deleteAll();
+    
+    return ResponseEntity.ok("Todo se ha borrado de forma correcta");
   }
 }
